@@ -4,7 +4,8 @@ Unit tests for utils.py functions.
 """
 import unittest
 from unittest.mock import patch, Mock
-from utils import access_nested_map, get_json
+# Make sure to import memoize!
+from utils import access_nested_map, get_json, memoize
 from parameterized import parameterized
 from typing import Mapping, Sequence, Any, Dict
 
@@ -79,5 +80,53 @@ class TestGetJson(unittest.TestCase):
             self.assertEqual(result, test_payload)
 
 
+# --- THIS IS WHERE THE NEW CODE IS ADDED ---
+# Two blank lines are required before a new class
+class TestMemoize(unittest.TestCase):
+    """
+    Test class for the memoize decorator.
+    """
+
+    def test_memoize(self) -> None:
+        """
+        Test that when a method decorated with @memoize is called
+        multiple times, the underlying method is only called once.
+        """
+        class TestClass:
+            """A test class to use the memoize decorator on."""
+            def __init__(self):
+                self.call_count = 0
+
+            def a_method(self):
+                """A method to be memoized."""
+                self.call_count += 1
+                return 42
+
+            @memoize
+            def a_property(self):
+                """A property that uses the memoized method."""
+                return self.a_method()
+
+        # We patch 'a_method' to spy on it
+        with patch.object(
+            TestClass,
+            'a_method',
+            wraps=TestClass.a_method
+        ) as mock_method:
+            test_obj = TestClass()
+
+            # Call the memoized property twice
+            result1 = test_obj.a_property
+            result2 = test_obj.a_property
+
+            # Check that the results are correct
+            self.assertEqual(result1, 42)
+            self.assertEqual(result2, 42)
+
+            # Check that the underlying method was called only ONCE
+            mock_method.assert_called_once()
+
+
+# This MUST be at the very end of the file
 if __name__ == '__main__':
     unittest.main()
