@@ -80,7 +80,6 @@ class TestGetJson(unittest.TestCase):
             self.assertEqual(result, test_payload)
 
 
-# --- THIS IS WHERE THE NEW CODE IS ADDED ---
 # Two blank lines are required before a new class
 class TestMemoize(unittest.TestCase):
     """
@@ -111,8 +110,12 @@ class TestMemoize(unittest.TestCase):
         with patch.object(
             TestClass,
             'a_method',
-            wraps=TestClass.a_method
+            # The 'wraps' argument was causing the error, so we remove it.
+            # wraps=TestClass.a_method
         ) as mock_method:
+            # We replace 'wraps' with this line to provide a return value
+            mock_method.return_value = 42
+
             test_obj = TestClass()
 
             # Call the memoized property twice
