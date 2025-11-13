@@ -1,0 +1,11 @@
+Python cache
+
+pycache/
+
+venv
+
+venv/
+
+DB
+
+*.db
