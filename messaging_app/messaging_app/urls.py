@@ -15,8 +15,13 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include  # <-- IMPORT INCLUDE
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    
+    # --- ADD THIS NEW LINE ---
+    # This includes all URLs from your chats app under the 'api/' prefix
+    # e.g., /api/conversations/ and /api/messages/
+    path('api/', include('chats.urls')),
 ]
