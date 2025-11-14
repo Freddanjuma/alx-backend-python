@@ -9,3 +9,32 @@ venv/
 DB
 
 *.db
+
+Python
+
+**/pycache/
+*.pyc
+*.pyo
+*.pyd
+
+Virtual Environment
+
+venv/
+.venv/
+env/
+*.env
+
+Database
+
+*.db
+*.sqlite3
+
+IDE / Editor
+
+.vscode/
+.idea/
+
+OS
+
+.DS_Store
+Thumbs.db
