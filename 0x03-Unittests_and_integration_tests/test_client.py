@@ -118,7 +118,7 @@ class TestGithubOrgClient(unittest.TestCase):
 
 # We add 2 blank lines here to fix Pycodestyle
 @parameterized_class(
-    ("org_payload", "repos_payload", "expected_repos", "apache2_roweb"),
+    ("org_payload", "repos_payload", "expected_repos", "apache2_repos"),
     TEST_PAYLOAD
 )
 class TestIntegrationGithubOrgClient(unittest.TestCase):
