@@ -73,6 +73,8 @@ class TestGithubOrgClient(unittest.TestCase):
         mock_get_json.return_value = repos_payload
 
         # Mock the _public_repos_url property
+        # --- FIX FOR E501 (Line 41) ---
+        # The line was too long, so we break it here
         with patch.object(
             GithubOrgClient,
             '_public_repos_url',
@@ -89,6 +91,8 @@ class TestGithubOrgClient(unittest.TestCase):
             # Assert the property was accessed once
             mock_public_repos_url.assert_called_once()
             # Assert get_json was called once with the correct URL
+            # --- FIX FOR E501 (Line 58) ---
+            # This line was also too long, so we break it
             mock_get_json.assert_called_once_with(
                 "https.api.github.com/orgs/google/repos"
             )
@@ -114,7 +118,7 @@ class TestGithubOrgClient(unittest.TestCase):
 
 # We add 2 blank lines here to fix Pycodestyle
 @parameterized_class(
-    ("org_payload", "repos_payload", "expected_repos", "apache2_repos"),
+    ("org_payload", "repos_payload", "expected_repos", "apache2_roweb"),
     TEST_PAYLOAD
 )
 class TestIntegrationGithubOrgClient(unittest.TestCase):
