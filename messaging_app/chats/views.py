@@ -1,68 +1,86 @@
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, status
+from rest_framework.response import Response
+from django.contrib.auth import get_user_model
+
 from .models import Conversation, Message
-from .serializers import (
-    ConversationSerializer, 
-    MessageSerializer, 
-    MessageCreateSerializer
-)
+from .serializers import ConversationSerializer, MessageSerializer
+
+User = get_user_model()
+
 
 class ConversationViewSet(viewsets.ModelViewSet):
     """
-    API endpoint that allows conversations to be viewed or created.
-    This is a simplified version for the ALX checker.
+    ViewSet for listing and creating conversations.
     """
-    # The checker is likely looking for this simple 'queryset' attribute
-    queryset = Conversation.objects.all() 
-    
+    queryset = Conversation.objects.all()
     serializer_class = ConversationSerializer
-    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         """
-        Secure the queryset to only return conversations
-        that the current user is a participant in.
+        Only return conversations where the authenticated user is a participant.
         """
         user = self.request.user
-        return user.conversations.all()
+        return Conversation.objects.filter(participants=user)
 
-    def perform_create(self, serializer):
+    def create(self, request, *args, **kwargs):
         """
-        When creating, add the current user as a participant.
+        Create a new conversation with a list of participants.
+        Expected payload:
+        {
+            "participants": ["user_id_1", "user_id_2"]
+        }
         """
-        conversation = serializer.save()
-        conversation.participants.add(self.request.user)
+        participants = request.data.get("participants", [])
 
+        if not participants:
+            return Response({"error": "Participants field is required"},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        # Ensure users exist
+        users = User.objects.filter(id__in=participants)
+
+        if users.count() != len(participants):
+            return Response({"error": "One or more user IDs are invalid"},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        conversation = Conversation.objects.create()
+        conversation.participants.set(users)
+        conversation.save()
+
+        serializer = ConversationSerializer(conversation)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 class MessageViewSet(viewsets.ModelViewSet):
     """
-    API endpoint that allows messages to be viewed or sent.
-    This is a simplified version for the ALX checker.
+    ViewSet for listing and sending messages in a conversation.
     """
-    # The checker is likely looking for this simple 'queryset' attribute
-    queryset = Message.objects.all() 
-    
-    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = MessageSerializer
 
     def get_queryset(self):
-        """
-        Secure the queryset to only return messages from conversations
-        that the current user is a participant in.
-        """
-        user = self.request.user
-        return Message.objects.filter(conversation__participants=user)
+        conversation_id = self.kwargs.get("conversation_pk")
+        return Message.objects.filter(conversation__conversation_id=conversation_id)
 
-    def get_serializer_class(self):
+    def create(self, request, *args, **kwargs):
         """
-        Use MessageCreateSerializer for writing (POST)
-        and MessageSerializer for reading (GET).
+        Create a message in an existing conversation.
+        Expected payload:
+        {
+            "message_body": "Hello there!"
+        }
         """
-        if self.action == 'create':
-            return MessageCreateSerializer
-        return MessageSerializer
+        conversation_id = self.kwargs.get("conversation_pk")
+        
+        try:
+            conversation = Conversation.objects.get(conversation_id=conversation_id)
+        except Conversation.DoesNotExist:
+            return Response({"error": "Conversation not found"},
+                            status=status.HTTP_404_NOT_FOUND)
 
-    def perform_create(self, serializer):
-        """
-        When sending a new message, set the 'sender'
-        to the currently logged-in user.
-        """
-        serializer.save(sender=self.request.user)
+        message = Message.objects.create(
+            conversation=conversation,
+            sender=request.user,
+            message_body=request.data.get("message_body")
+        )
+
+        serializer = MessageSerializer(message)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
