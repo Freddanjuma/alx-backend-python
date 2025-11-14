@@ -73,8 +73,8 @@ class TestGithubOrgClient(unittest.TestCase):
         mock_get_json.return_value = repos_payload
 
         # Mock the _public_repos_url property
-        # --- FIX FOR E501 (Line 41) ---
-        # The line was too long, so we break it here
+        # --- THIS IS THE FIX FOR YOUR FIRST E501 ERROR ---
+        # The line was too long, so we break it after 'new_callable'
         with patch.object(
             GithubOrgClient,
             '_public_repos_url',
@@ -91,7 +91,7 @@ class TestGithubOrgClient(unittest.TestCase):
             # Assert the property was accessed once
             mock_public_repos_url.assert_called_once()
             # Assert get_json was called once with the correct URL
-            # --- FIX FOR E501 (Line 58) ---
+            # --- THIS IS THE FIX FOR YOUR SECOND E501 ERROR ---
             # This line was also too long, so we break it
             mock_get_json.assert_called_once_with(
                 "https.api.github.com/orgs/google/repos"
