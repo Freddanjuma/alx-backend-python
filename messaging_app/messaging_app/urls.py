@@ -19,9 +19,5 @@ from django.urls import path, include  # <-- IMPORT INCLUDE
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    
-    # --- ADD THIS NEW LINE ---
-    # This includes all URLs from your chats app under the 'api/' prefix
-    # e.g., /api/conversations/ and /api/messages/
-    path('api/', include('chats.urls')),
+    path('api/', include('chats.urls')),  # Include the chats app router
 ]
