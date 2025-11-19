@@ -1,40 +1,40 @@
-from rest_framework import viewsets, filters
-from rest_framework.response import Response
-from rest_framework import status
-from django.shortcuts import get_object_or_404
-
+from rest_framework import viewsets, permissions, status, response
 from .models import Conversation, Message
 from .serializers import ConversationSerializer, MessageSerializer
-
+from .permissions import IsParticipantOfConversation
 
 class ConversationViewSet(viewsets.ModelViewSet):
-    queryset = Conversation.objects.all()
+    """
+    ViewSet for viewing and editing conversations.
+    Filters queryset so users only see their own conversations.
+    """
     serializer_class = ConversationSerializer
-    filter_backends = [filters.SearchFilter]
-    search_fields = ["participants__username"]
+    # Apply the custom permission. 
+    # Note: IsParticipantOfConversation already checks for authentication in our implementation.
+    permission_classes = [IsParticipantOfConversation]
 
-    def create(self, request, *args, **kwargs):
-        """Create a new conversation"""
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+    def get_queryset(self):
+        # Ensure users only see conversations they participate in
+        return Conversation.objects.filter(participants=self.request.user)
+
+    def perform_create(self, serializer):
+        # Create conversation and automatically add the current user as a participant
         conversation = serializer.save()
-        return Response(ConversationSerializer(conversation).data, status=status.HTTP_201_CREATED)
+        conversation.participants.add(self.request.user)
 
 
 class MessageViewSet(viewsets.ModelViewSet):
-    queryset = Message.objects.all()
+    """
+    ViewSet for viewing and editing messages.
+    Filters queryset so users only see messages from conversations they are part of.
+    """
     serializer_class = MessageSerializer
-    filter_backends = [filters.SearchFilter]
-    search_fields = ["conversation__id", "sender__username"]
+    permission_classes = [IsParticipantOfConversation]
 
-    def create(self, request, *args, **kwargs):
-        """Send message to an existing conversation"""
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+    def get_queryset(self):
+        # Ensure users only see messages from their conversations
+        return Message.objects.filter(conversation__participants=self.request.user)
 
-        conversation_id = request.data.get("conversation")
-        conversation = get_object_or_404(Conversation, id=conversation_id)
-
-        message = serializer.save(conversation=conversation)
-
-        return Response(MessageSerializer(message).data, status=status.HTTP_201_CREATED)
+    def perform_create(self, serializer):
+        # Automatically set the sender to the current user
+        serializer.save(sender=self.request.user)
