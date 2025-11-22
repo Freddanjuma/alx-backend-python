@@ -132,4 +132,5 @@ class TestMemoize(unittest.TestCase):
 
 # This MUST be at the very end of the file
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main
+    
