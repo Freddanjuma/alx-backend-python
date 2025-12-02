@@ -1,40 +1,28 @@
-import time
-from django.utils.deprecation import MiddlewareMixin
-from django.utils import timezone
-import os
+# chats/middleware.py
 
+import logging
+from datetime import datetime
 
-class RequestLoggingMiddleware(MiddlewareMixin):
-    """
-    Middleware that logs every request to chats/requests.log
-    """
+class RequestLoggingMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
 
-    def process_request(self, request):
-        # Record request start time
-        request.start_time = time.time()
+        # Configure logger
+        self.logger = logging.getLogger("request_logger")
+        handler = logging.FileHandler("requests.log")   # log file in project root
+        formatter = logging.Formatter("%(message)s")
+        handler.setFormatter(formatter)
 
-    def process_response(self, request, response):
-        try:
-            # Calculate request duration
-            duration = time.time() - request.start_time
-            duration = round(duration, 4)
+        if not self.logger.handlers:
+            self.logger.addHandler(handler)
 
-            # Construct log entry
-            timestamp = timezone.now().strftime("%Y-%m-%d %H:%M:%S")
-            method = request.method
-            path = request.path
-            status = response.status_code
+        self.logger.setLevel(logging.INFO)
 
-            log_entry = f"[{timestamp}] {method} {path} {status} {duration}s\n"
+    def __call__(self, request):
+        user = request.user if request.user.is_authenticated else "Anonymous"
 
-            # Log file path
-            log_dir = os.path.join(os.path.dirname(__file__), "requests.log")
+        log_message = f"{datetime.now()} - User: {user} - Path: {request.path}"
+        self.logger.info(log_message)
 
-            # Write to requests.log
-            with open(log_dir, "a") as log_file:
-                log_file.write(log_entry)
-
-        except Exception as e:
-            pass  # Ensures middleware never breaks the app
-
+        response = self.get_response(request)
         return response
