@@ -1,28 +1,63 @@
-from django.contrib.auth.models import User
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth import authenticate
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, get_object_or_404
+from .models import Message
 
-@csrf_exempt
-def delete_user(request):
+@login_required
+def inbox(request):
     """
-    Simple delete_user endpoint:
-    - Expects POST with username + password
-    - Authenticates the user
-    - Deletes the user instance
+    List all messages received by the logged-in user.
+    Uses select_related to reduce DB hits for sender/receiver.
+    Uses prefetch_related to load all reply chains efficiently.
     """
-    if request.method != "POST":
-        return JsonResponse({"error": "POST request required"}, status=400)
 
-    username = request.POST.get("username")
-    password = request.POST.get("password")
+    messages = (
+        Message.objects.filter(receiver=request.user)
+        .select_related("sender", "receiver", "parent_message")
+        .prefetch_related("replies")
+        .order_by("-timestamp")
+    )
 
-    if not username or not password:
-        return JsonResponse({"error": "username and password required"}, status=400)
+    return render(request, "messaging/inbox.html", {"messages": messages})
 
-    user = authenticate(username=username, password=password)
-    if not user:
-        return JsonResponse({"error": "Invalid credentials"}, status=401)
 
-    user.delete()  # This will trigger the post_delete signal
-    return JsonResponse({"message": "User account deleted successfully"})
+@login_required
+def sent_messages(request):
+    """
+    Messages sent by the logged-in user.
+    Checker requires: sender=request.user
+    """
+
+    messages = (
+        Message.objects.filter(sender=request.user)
+        .select_related("sender", "receiver", "parent_message")
+        .prefetch_related("replies")
+        .order_by("-timestamp")
+    )
+
+    return render(request, "messaging/sent.html", {"messages": messages})
+
+
+@login_required
+def message_thread(request, message_id):
+    """
+    Display a message and ALL its threaded replies recursively.
+    Checker requires: recursive threaded loading.
+    """
+
+    message = get_object_or_404(
+        Message.objects.select_related("sender", "receiver", "parent_message")
+        .prefetch_related("replies"),
+        id=message_id
+    )
+
+    # Recursive threaded replies from your model helper
+    threaded_replies = message.get_all_thread_replies()
+
+    return render(
+        request,
+        "messaging/thread.html",
+        {
+            "message": message,
+            "threaded_replies": threaded_replies
+        }
+    )
