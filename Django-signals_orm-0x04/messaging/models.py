@@ -1,25 +1,12 @@
+# messaging/models.py
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
+# import the custom manager
+from .managers import UnreadMessagesManager
+
 User = get_user_model()
-
-
-# Custom Manager for unread messages
-class UnreadMessagesManager(models.Manager):
-    def for_user(self, user):
-        """
-        Return unread messages for a specific user.
-        Optimized with .only() to fetch only necessary fields.
-        """
-        return (
-            super()
-            .get_queryset()
-            .filter(receiver=user, read=False)
-            .select_related("sender", "receiver")
-            .only("id", "sender", "receiver", "content", "timestamp")
-        )
-
 
 class Message(models.Model):
     sender = models.ForeignKey(User, related_name='sent_messages', on_delete=models.CASCADE)
@@ -27,7 +14,6 @@ class Message(models.Model):
     content = models.TextField()
     timestamp = models.DateTimeField(default=timezone.now)
 
-    # Edit tracking from previous tasks
     edited = models.BooleanField(default=False)
     edited_at = models.DateTimeField(null=True, blank=True)
 
@@ -39,22 +25,20 @@ class Message(models.Model):
         on_delete=models.SET_NULL
     )
 
-    # Threading (from prior task)
     parent_message = models.ForeignKey(
         "self",
+        on_delete=models.CASCADE,
         null=True,
         blank=True,
-        on_delete=models.CASCADE,
-        related_name="replies"
+        related_name='replies'
     )
 
-    # NEW FIELD: read/unread status
+    # new boolean field for read/unread status (if not already present)
     read = models.BooleanField(default=False)
 
-    # Default Manager
+    # Default manager
     objects = models.Manager()
-
-    # Custom unread manager
+    # Custom unread manager exposed as "unread"
     unread = UnreadMessagesManager()
 
     def __str__(self):
@@ -63,14 +47,11 @@ class Message(models.Model):
     def get_direct_replies(self):
         return self.replies.all().select_related("sender", "receiver")
 
-    # Recursive threaded replies
     def get_all_thread_replies(self):
         thread = []
-
         def collect(msg):
             for reply in msg.replies.all().select_related("sender", "receiver"):
                 thread.append(reply)
                 collect(reply)
-
         collect(self)
         return thread
