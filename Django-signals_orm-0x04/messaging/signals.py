@@ -1,7 +1,22 @@
 from django.db.models.signals import pre_save
-from django.dispatch import receiver
 from .models import Message, MessageHistory
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
+from django.contrib.auth.models import User
+from .models import Message, Notification, MessageHistory
 
+@receiver(post_delete, sender=User)
+def delete_user_related_data(sender, instance, **kwargs):
+    """
+    Automatically deletes all user-related data when a User account is deleted.
+    This includes:
+    - messages authored by the user
+    - notifications belonging to the user
+    - message edit histories associated with the user
+    """
+    Message.objects.filter(user=instance).delete()
+    Notification.objects.filter(user=instance).delete()
+    MessageHistory.objects.filter(user=instance).delete()
 
 @receiver(pre_save, sender=Message)
 def log_message_edit(sender, instance, **kwargs):
