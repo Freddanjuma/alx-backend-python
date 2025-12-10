@@ -4,17 +4,33 @@ from django.utils import timezone
 
 User = get_user_model()
 
+
+# Custom Manager for unread messages
+class UnreadMessagesManager(models.Manager):
+    def for_user(self, user):
+        """
+        Return unread messages for a specific user.
+        Optimized with .only() to fetch only necessary fields.
+        """
+        return (
+            super()
+            .get_queryset()
+            .filter(receiver=user, read=False)
+            .select_related("sender", "receiver")
+            .only("id", "sender", "receiver", "content", "timestamp")
+        )
+
+
 class Message(models.Model):
     sender = models.ForeignKey(User, related_name='sent_messages', on_delete=models.CASCADE)
     receiver = models.ForeignKey(User, related_name='received_messages', on_delete=models.CASCADE)
     content = models.TextField()
     timestamp = models.DateTimeField(default=timezone.now)
 
-    # Edit tracking (from previous task)
+    # Edit tracking from previous tasks
     edited = models.BooleanField(default=False)
     edited_at = models.DateTimeField(null=True, blank=True)
 
-    # REQUIRED BY CHECKER
     edited_by = models.ForeignKey(
         User,
         null=True,
@@ -23,19 +39,27 @@ class Message(models.Model):
         on_delete=models.SET_NULL
     )
 
-    # NEW FOR THREADED CONVERSATIONS
+    # Threading (from prior task)
     parent_message = models.ForeignKey(
         "self",
-        on_delete=models.CASCADE,
         null=True,
         blank=True,
-        related_name='replies'
+        on_delete=models.CASCADE,
+        related_name="replies"
     )
+
+    # NEW FIELD: read/unread status
+    read = models.BooleanField(default=False)
+
+    # Default Manager
+    objects = models.Manager()
+
+    # Custom unread manager
+    unread = UnreadMessagesManager()
 
     def __str__(self):
         return f"From {self.sender} to {self.receiver}"
 
-    # Get direct replies
     def get_direct_replies(self):
         return self.replies.all().select_related("sender", "receiver")
 
