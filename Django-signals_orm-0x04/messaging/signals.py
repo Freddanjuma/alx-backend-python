@@ -1,12 +1,29 @@
-from django.db.models.signals import post_save
+from django.db.models.signals import pre_save
 from django.dispatch import receiver
-from .models import Message, Notification
+from .models import Message, MessageHistory
 
-@receiver(post_save, sender=Message)
-def create_notification(sender, instance, created, **kwargs):
-    if created:
-        Notification.objects.create(
-            user=instance.receiver,
+
+@receiver(pre_save, sender=Message)
+def log_message_edit(sender, instance, **kwargs):
+    """
+    Detect changes in message content before saving.
+    If content changed, log the old content and mark message as edited.
+    """
+    if not instance.pk:
+        return  # message is new, do nothing
+
+    try:
+        old_message = Message.objects.get(pk=instance.pk)
+    except Message.DoesNotExist:
+        return
+
+    # Check if content changed
+    if old_message.content != instance.content:
+        # Mark as edited
+        instance.edited = True
+
+        # Save history
+        MessageHistory.objects.create(
             message=instance,
-            text=f"You received a new message from {instance.sender.username}"
+            old_content=old_message.content
         )
