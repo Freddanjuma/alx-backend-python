@@ -1,0 +1,48 @@
+# Environment variables
+.env
+
+# Python cache files
+__pycache__/
+*.pyc
+db.sqlite3
+
+# Docker / Kubernetes binaries
+minikube-linux-amd64
+kubectl
+
+# Django / Python
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+.env/
+.env.*
+
+# Docker
+*.log
+docker-data/
+mysql_data/
+
+
+# MySQL
+*.ibd
+*.ibdata*
+*.frm
+
+# Docker volumes
+**/mysql_data/
+**/data/
+# Kubernetes / binaries
+minikube
+minikube-linux-amd64
+kubectl
+*-linux-amd64
+kubectl-linux-amd64
+docker
+docker-linux-amd64
+
+# Python cache / tests
+__pycache__/
+*.pyc
+fixtures.py
