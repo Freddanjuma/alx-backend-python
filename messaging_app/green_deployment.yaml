@@ -19,3 +19,4 @@ spec:
         image: messaging-app:latest
         ports:
         - containerPort: 8000
+
