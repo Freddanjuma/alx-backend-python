@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# Deploy the Blue version
+kubectl apply -f blue_deployment.yaml
+
+# Deploy the Green version
+kubectl apply -f green_deployment.yaml
+
+# Check logs for the Green version to ensure it started correctly
+# We use 'tail -n 20' to see the most recent logs
+echo "Checking logs for Green deployment..."
+kubectl logs -l version=green --tail=20
