@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# Apply the updated deployment to trigger a rolling update
+kubectl apply -f messaging_app/blue_deployment.yaml
+
+# Check rollout status
+echo "Waiting for rollout to complete..."
+kubectl rollout status deployment/messaging-app-blue
+
+# Test connectivity (Simulating a check for downtime)
+# We send a request to the API endpoint
+echo "Testing application availability..."
+curl -sI http://localhost/api/ | head -n 1
+
+# Verify the pods are running with the new version
+echo "Verifying Pods..."
+kubectl get pods -l app=messaging-app,version=blue
